@@ -12,6 +12,19 @@ export interface ScheduleEvent {
     recurrenceDay?: number; // 0=Sun, 1=Mon ... 6=Sat (반복 일정용)
 }
 
+export interface ContactFormPayload {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    category: string;
+    date: string;
+    time?: string;
+    participants: number;
+    note?: string;
+    submittedAt?: string;
+}
+
 export const CATEGORY_COLORS: Record<Category, string> = {
     healing: '#8EBC8E',
     oneday: '#CD853F',

@@ -6,8 +6,9 @@ import {
     CATEGORY_COLORS,
     CATEGORY_LABELS,
     Category,
+    ContactFormPayload,
 } from '@/lib/types';
-import { fetchEvents, apiAddEvent, apiUpdateEvent, apiDeleteEvent, generateId } from '@/lib/api';
+import { fetchEvents, apiAddEvent, apiUpdateEvent, apiDeleteEvent, generateId, fetchSubmissions } from '@/lib/api';
 import styles from './admin.module.css';
 
 // ─── 비밀번호 상수 ───────────────────────────────────────────
@@ -94,22 +95,34 @@ export default function AdminPage() {
 
 // ─── 어드민 대시보드 (인증 후) ───────────────────────────────
 function AdminDashboard() {
+    const [activeTab, setActiveTab] = useState<'schedules' | 'submissions'>('schedules');
+    // 스케줄 상태
     const [events, setEvents] = useState<ScheduleEvent[]>([]);
     const [form, setForm] = useState<FormData>(EMPTY_FORM);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all');
+    // 상담 내역 상태
+    const [submissions, setSubmissions] = useState<ContactFormPayload[]>([]);
     const [apiLoading, setApiLoading] = useState(false);
     const [statusMsg, setStatusMsg] = useState('');
 
-    const loadEvents = useCallback(async () => {
+    const loadData = useCallback(async () => {
         setApiLoading(true);
-        const data = await fetchEvents();
-        setEvents(data);
-        setApiLoading(false);
-    }, []);
+        try {
+            if (activeTab === 'schedules') {
+                const data = await fetchEvents();
+                setEvents(data);
+            } else {
+                const data = await fetchSubmissions();
+                setSubmissions(data);
+            }
+        } finally {
+            setApiLoading(false);
+        }
+    }, [activeTab]);
 
-    useEffect(() => { loadEvents(); }, [loadEvents]);
+    useEffect(() => { loadData(); }, [loadData]);
 
     function notify(msg: string) {
         setStatusMsg(msg);
@@ -229,61 +242,118 @@ function AdminDashboard() {
             <div className={styles.topBar}>
                 <div>
                     <h1 className={styles.pageTitle}>꽃뜰 어드민</h1>
-                    <p className={styles.pageDesc}>스케줄 등록 및 관리</p>
+                    <p className={styles.pageDesc}>스케줄 등록 및 상담 문의 내역 관리</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {apiLoading && <span className={styles.loadingBadge}>처리 중…</span>}
                     {statusMsg && <span className={styles.statusMsg}>{statusMsg}</span>}
-                    <button className={styles.addBtn} onClick={openNew} disabled={apiLoading}>+ 새 일정 추가</button>
+                    {activeTab === 'schedules' && (
+                        <button className={styles.addBtn} onClick={openNew} disabled={apiLoading}>+ 새 일정 추가</button>
+                    )}
                 </div>
             </div>
 
-            {/* 필터 */}
-            <div className={styles.filterBar}>
+            {/* 탭 네비게이션 */}
+            <div className={styles.tabsMenu}>
                 <button
-                    className={`${styles.filterChip} ${filterCategory === 'all' ? styles.filterActive : ''}`}
-                    onClick={() => setFilterCategory('all')}
-                >전체</button>
-                {(Object.keys(CATEGORY_LABELS) as Category[]).map(k => (
-                    <button
-                        key={k}
-                        className={`${styles.filterChip} ${filterCategory === k ? styles.filterActive : ''}`}
-                        style={filterCategory === k ? { backgroundColor: CATEGORY_COLORS[k], borderColor: CATEGORY_COLORS[k], color: 'white' } : {}}
-                        onClick={() => setFilterCategory(k)}
-                    >{CATEGORY_LABELS[k]}</button>
-                ))}
+                    className={`${styles.tabBtn} ${activeTab === 'schedules' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('schedules')}
+                >스케줄 관리</button>
+                <button
+                    className={`${styles.tabBtn} ${activeTab === 'submissions' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('submissions')}
+                >상담 신청 내역 <span className={styles.badgeCount}>{submissions.length || ''}</span></button>
             </div>
 
-            {/* 일정 목록 */}
-            <div className={styles.table}>
-                <div className={styles.tableHeader}>
-                    <span>날짜</span><span>시간</span><span>제목</span>
-                    <span>카테고리</span><span>반복</span><span>관리</span>
-                </div>
-                {sorted.length === 0 && (
-                    <div className={styles.emptyRow}>
-                        {apiLoading ? '일정을 불러오는 중…' : '등록된 일정이 없습니다.'}
+            {activeTab === 'schedules' ? (
+                <>
+                    {/* 필터 */}
+                    <div className={styles.filterBar}>
+                        <button
+                            className={`${styles.filterChip} ${filterCategory === 'all' ? styles.filterActive : ''}`}
+                            onClick={() => setFilterCategory('all')}
+                        >전체</button>
+                        {(Object.keys(CATEGORY_LABELS) as Category[]).map(k => (
+                            <button
+                                key={k}
+                                className={`${styles.filterChip} ${filterCategory === k ? styles.filterActive : ''}`}
+                                style={filterCategory === k ? { backgroundColor: CATEGORY_COLORS[k], borderColor: CATEGORY_COLORS[k], color: 'white' } : {}}
+                                onClick={() => setFilterCategory(k)}
+                            >{CATEGORY_LABELS[k]}</button>
+                        ))}
                     </div>
-                )}
-                {sorted.map(ev => (
-                    <div key={ev.id} className={styles.tableRow}>
-                        <span className={styles.dateCell}>{ev.date}</span>
-                        <span className={styles.timeCell}>{ev.startTime} – {ev.endTime}</span>
-                        <span className={styles.titleCell}>{ev.title}</span>
-                        <span>
-                            <span
-                                className={styles.catBadge}
-                                style={{ backgroundColor: `${CATEGORY_COLORS[ev.category]}20`, color: CATEGORY_COLORS[ev.category] }}
-                            >{CATEGORY_LABELS[ev.category]}</span>
-                        </span>
-                        <span className={styles.recurCell}>{ev.isRecurring ? '🔁 반복' : '—'}</span>
-                        <span className={styles.actions}>
-                            <button className={styles.editBtn} onClick={() => openEdit(ev)} disabled={apiLoading}>수정</button>
-                            <button className={styles.deleteBtn} onClick={() => handleDelete(ev.id)} disabled={apiLoading}>삭제</button>
-                        </span>
+
+                    {/* 일정 목록 */}
+                    <div className={styles.table}>
+                        <div className={styles.tableHeader}>
+                            <span>날짜</span><span>시간</span><span>제목</span>
+                            <span>카테고리</span><span>반복</span><span>관리</span>
+                        </div>
+                        {sorted.length === 0 && (
+                            <div className={styles.emptyRow}>
+                                {apiLoading ? '일정을 불러오는 중…' : '등록된 일정이 없습니다.'}
+                            </div>
+                        )}
+                        {sorted.map(ev => (
+                            <div key={ev.id} className={styles.tableRow}>
+                                <span className={styles.dateCell}>{ev.date}</span>
+                                <span className={styles.timeCell}>{ev.startTime} – {ev.endTime}</span>
+                                <span className={styles.titleCell}>{ev.title}</span>
+                                <span>
+                                    <span
+                                        className={styles.catBadge}
+                                        style={{ backgroundColor: `${CATEGORY_COLORS[ev.category]}20`, color: CATEGORY_COLORS[ev.category] }}
+                                    >{CATEGORY_LABELS[ev.category] || ev.category}</span>
+                                </span>
+                                <span className={styles.recurCell}>{ev.isRecurring ? '🔁 반복' : '—'}</span>
+                                <span className={styles.actions}>
+                                    <button className={styles.editBtn} onClick={() => openEdit(ev)} disabled={apiLoading}>수정</button>
+                                    <button className={styles.deleteBtn} onClick={() => handleDelete(ev.id)} disabled={apiLoading}>삭제</button>
+                                </span>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
+                </>
+            ) : (
+                <>
+                    {/* 상담 내역 목록 */}
+                    <div className={styles.table}>
+                        <div className={styles.subHeader}>
+                            <span>접수일시</span><span>신청자</span><span>연락처/메일</span>
+                            <span>카테고리</span><span>인원/희망일정</span>
+                        </div>
+                        {submissions.length === 0 && (
+                            <div className={styles.emptyRow}>
+                                {apiLoading ? '상담 내역을 불러오는 중…' : '접수된 상담 신청 내역이 없습니다.'}
+                            </div>
+                        )}
+                        {submissions.map(sub => (
+                            <div key={sub.id} className={styles.subRow}>
+                                <span className={styles.dateCell}>{sub.submittedAt || '기록없음'}</span>
+                                <span className={styles.titleCell}>{sub.name}</span>
+                                <div className={styles.contactCell}>
+                                    <div>{sub.phone}</div>
+                                    <div className={styles.emailText}>{sub.email || '-'}</div>
+                                </div>
+                                <span>
+                                    <span className={styles.catBadge} style={{ backgroundColor: '#F0F0F0', color: '#555' }}>
+                                        {sub.category}
+                                    </span>
+                                </span>
+                                <div className={styles.infoCell}>
+                                    <div>{sub.participants}명</div>
+                                    <div className={styles.wantedDate}>{sub.date} {sub.time || ''}</div>
+                                </div>
+                                {sub.note && (
+                                    <div className={styles.noteRow}>
+                                        <strong>문의사항:</strong> {sub.note}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
 
             {/* 폼 모달 */}
             {showForm && (

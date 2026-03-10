@@ -81,3 +81,45 @@ export async function apiDeleteEvent(id: string): Promise<boolean> {
 export function generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
+
+/**
+ * 폼 상담 신청 (GET ?action=submit&data=JSON)
+ */
+export async function apiSubmitForm(form: import('./types').ContactFormPayload): Promise<boolean> {
+    if (!isConfigured()) return false;
+    try {
+        const json = await apiFetch({ action: 'submit', data: JSON.stringify(form) });
+        return json.success === true;
+    } catch (e) {
+        console.error('[API] apiSubmitForm 실패:', e);
+        return false;
+    }
+}
+
+/**
+ * 상담 내역 조회 (GET ?action=getSubmissions)
+ */
+export async function fetchSubmissions(): Promise<import('./types').ContactFormPayload[]> {
+    if (!isConfigured()) return [];
+    try {
+        const json = await apiFetch({ action: 'getSubmissions' });
+        if (!json.success) throw new Error(json.error);
+        return (json.data ?? []) as unknown as import('./types').ContactFormPayload[];
+    } catch (e) {
+        console.error('[API] fetchSubmissions 실패:', e);
+        return [];
+    }
+}
+/**
+ * 방문 기록 (GET ?action=trackVisit&path=PATH)
+ */
+export async function apiTrackVisit(path: string): Promise<boolean> {
+    if (!isConfigured()) return false;
+    try {
+        // 내부 호출용이므로 실패해도 사용자에게 알림은 주지 않음
+        apiFetch({ action: 'trackVisit', path });
+        return true;
+    } catch (e) {
+        return false;
+    }
+}

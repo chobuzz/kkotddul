@@ -213,6 +213,119 @@
     color: white;
 }
 
+/* Tabs Menu */
+.tabsMenu {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #EEE;
+    padding-bottom: 0;
+}
+
+.tabBtn {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: -2px;
+    /* overlap border */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tabBtn:hover {
+    color: var(--color-text-main);
+}
+
+.tabActive {
+    color: var(--color-sage-green-dark);
+    border-bottom: 3px solid var(--color-sage-green);
+}
+
+.badgeCount {
+    background: #EEE;
+    color: #666;
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+/* Submissions Table */
+.subHeader {
+    display: grid;
+    grid-template-columns: 140px 100px 1fr 130px 150px;
+    padding: 14px 20px;
+    background: #F9F9F9;
+    border-bottom: 1px solid #F0F0F0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.subRow {
+    display: grid;
+    grid-template-columns: 140px 100px 1fr 130px 150px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #F7F7F7;
+    align-items: center;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+    position: relative;
+    /* for note */
+}
+
+.subRow:last-child {
+    border-bottom: none;
+}
+
+.subRow:hover {
+    background: #FAFAFA;
+}
+
+.contactCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+}
+
+.emailText {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.infoCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+}
+
+.wantedDate {
+    font-weight: 600;
+    color: var(--color-sage-green-dark);
+}
+
+.noteRow {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+    padding: 12px;
+    background: #FFFBEA;
+    border-left: 3px solid #E6D58C;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.4;
+}
+
 /* Table */
 .table {
     background: white;

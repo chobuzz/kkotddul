@@ -1,0 +1,152 @@
+.form {
+    background: var(--color-white);
+    border: 1px solid #EBEBEB;
+    border-radius: 16px;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #444;
+}
+
+.required {
+    color: #E05555;
+}
+
+.field input,
+.field select,
+.field textarea {
+    padding: 12px 14px;
+    border: 1.5px solid #E5E5E5;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--color-text-main);
+    background: #FAFAFA;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    outline: none;
+    border-color: var(--color-sage-green);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(178, 172, 136, 0.15);
+}
+
+.field textarea {
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.submitBtn {
+    margin-top: 4px;
+    padding: 16px;
+    background: var(--accent, var(--color-sage-green));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.02em;
+}
+
+.submitBtn:hover {
+    filter: brightness(0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* 성공 화면 */
+.success {
+    background: white;
+    border: 1px solid #EBEBEB;
+    border-radius: 16px;
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex: 1;
+    gap: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+}
+
+.successIcon {
+    width: 60px;
+    height: 60px;
+    background: #E8F5E9;
+    color: #4CAF50;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    line-height: 60px;
+    margin-bottom: 8px;
+}
+
+.success h3 {
+    font-size: 1.5rem;
+    color: var(--color-text-main);
+}
+
+.success p {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+}
+
+.resetBtn {
+    margin-top: 16px;
+    padding: 12px 28px;
+    border: 1.5px solid var(--color-sage-green);
+    border-radius: 8px;
+    color: var(--color-sage-green-dark);
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+}
+
+.resetBtn:hover {
+    background: var(--color-sage-green);
+    color: white;
+}
+
+@media (max-width: 600px) {
+    .form {
+        padding: 28px 20px;
+    }
+
+    .row {
+        grid-template-columns: 1fr;
+    }
+}

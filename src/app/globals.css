@@ -1,27 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Brand Colors */
+  --color-sage-green: #B2AC88;
+  --color-sage-green-dark: #8E8A6D;
+  --color-sage-green-light: #D1CDAF;
+  
+  --color-earth-tone-raw: #D2B48C;
+  --color-earth-tone-soft: #F5F5DC;
+  --color-earth-tone-warm: #E6D5C0;
+  
+  --color-white: #FFFFFF;
+  --color-off-white: #FAFAFA;
+  --color-text-main: #2D2D2D;
+  --color-text-muted: #666666;
+  
+  --color-category-1: #8EBC8E; /* 치유 농업 */
+  --color-category-2: #CD853F; /* 원데이 클래스 */
+  --color-category-3: #9ACD32; /* 원예 힐링 */
+  --color-category-4: #F4A460; /* 공간 대여 */
+  --color-category-5: #6B8E23; /* 사회적 농업 */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* Spacing & Borders */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --border-radius: 12px;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-premium: 0 4px 20px rgba(0, 0, 0, 0.05);
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Typography */
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -30,13 +41,63 @@ body {
   margin: 0;
 }
 
+body {
+  font-family: var(--font-main);
+  background-color: var(--color-white);
+  color: var(--color-text-main);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
 a {
   color: inherit;
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: var(--color-text-main);
+  letter-spacing: -0.02em;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+.btn-primary {
+  background-color: var(--color-sage-green);
+  color: var(--color-white);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  transition: var(--transition-smooth);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-sage-green-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-premium);
+}
+
+.btn-secondary {
+  background-color: var(--color-earth-tone-soft);
+  color: var(--color-text-main);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  transition: var(--transition-smooth);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-earth-tone-warm);
+  transform: translateY(-2px);
 }

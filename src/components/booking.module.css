@@ -1,0 +1,70 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.modal {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    border-radius: var(--border-radius);
+    padding: 40px;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.closeBtn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 2rem;
+    color: #888;
+    line-height: 1;
+}
+
+.title {
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+}
+
+.program {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--color-sage-green-dark);
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.field input,
+.field textarea {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.field textarea {
+    height: 100px;
+    resize: vertical;
+}

@@ -12,6 +12,7 @@ interface ProgramDetail {
     targets: string[];
     curriculum: { title: string; desc: string }[];
     features: { icon: string; title: string; desc: string }[];
+    ctaText?: string; // optional
 }
 
 interface ProgramPageProps {

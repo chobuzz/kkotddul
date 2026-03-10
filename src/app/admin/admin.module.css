@@ -1,3 +1,143 @@
+/* ─── 비밀번호 게이트 ──────────────────── */
+.gatePage {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f5f7f2 0%, #eef1ea 100%);
+}
+
+.gateCard {
+    background: white;
+    border-radius: 24px;
+    padding: 52px 44px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.gateLogo {
+    font-size: 3rem;
+    margin-bottom: 4px;
+}
+
+.gateTitle {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: var(--color-text-main);
+}
+
+.gateDesc {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+
+.gateForm {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.gateInput {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1.5px solid #E5E5E5;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: #FAFAFA;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.gateInput:focus {
+    outline: none;
+    border-color: var(--color-sage-green);
+    box-shadow: 0 0 0 3px rgba(178, 172, 136, 0.15);
+}
+
+.gateInputError {
+    border-color: #CC4444 !important;
+    animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-6px);
+    }
+
+    75% {
+        transform: translateX(6px);
+    }
+}
+
+.gateError {
+    font-size: 0.85rem;
+    color: #CC4444;
+    text-align: center;
+    margin: 0;
+}
+
+.gateBtn {
+    width: 100%;
+    padding: 14px;
+    background: var(--color-sage-green);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.gateBtn:hover {
+    background: var(--color-sage-green-dark);
+    transform: translateY(-1px);
+}
+
+/* ─── 상태 메시지 ──────────────────── */
+.loadingBadge {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    padding: 6px 12px;
+    background: #F3F3F3;
+    border-radius: 50px;
+}
+
+.statusMsg {
+    font-size: 0.85rem;
+    color: var(--color-sage-green-dark);
+    font-weight: 600;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── Admin Page ──────────────────── */
 .page {
     min-height: 100vh;
     background: #F8F8F8;

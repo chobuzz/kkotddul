@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ScheduleEvent, CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/types';
-import { getEvents } from '@/lib/store';
+import { ScheduleEvent, CATEGORY_COLORS, CATEGORY_LABELS, INITIAL_EVENTS } from '@/lib/types';
+import { fetchEvents } from '@/lib/api';
 import styles from './scheduler.module.css';
 
 // 오늘 날짜 문자열 반환 (YYYY-MM-DD, 한국 시간 기준)
@@ -39,14 +39,26 @@ export default function Scheduler() {
     const [events, setEvents] = useState<ScheduleEvent[]>([]);
     const [view, setView] = useState<'calendar' | 'list'>('calendar');
     const [baseDate, setBaseDate] = useState(new Date());
+    const [isLoading, setIsLoading] = useState(true);
 
     const today = toDateStr(new Date());
     const weekDates = getWeekDates(baseDate);
 
     useEffect(() => {
-        setEvents(getEvents());
         // 모바일이면 기본 리스트 뷰
         if (window.innerWidth < 768) setView('list');
+
+        setIsLoading(true);
+        fetchEvents()
+            .then(data => {
+                setEvents(data);
+            })
+            .catch(() => {
+                setEvents(INITIAL_EVENTS);
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }, []);
 
     function getEventsForDate(d: Date) {

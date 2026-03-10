@@ -1,15 +1,59 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     ScheduleEvent,
     CATEGORY_COLORS,
     CATEGORY_LABELS,
     Category,
 } from '@/lib/types';
-import { getEvents, saveEvents, deleteEvent, generateId } from '@/lib/store';
+import { fetchEvents, apiAddEvent, apiUpdateEvent, apiDeleteEvent, generateId } from '@/lib/api';
 import styles from './admin.module.css';
 
+// ─── 비밀번호 상수 ───────────────────────────────────────────
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '';
+const SESSION_KEY = 'koteul_admin_auth';
+
+// ─── 비밀번호 잠금 화면 ──────────────────────────────────────
+function PasswordGate({ onAuth }: { onAuth: () => void }) {
+    const [input, setInput] = useState('');
+    const [error, setError] = useState(false);
+
+    function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        if (input === ADMIN_PASSWORD) {
+            sessionStorage.setItem(SESSION_KEY, '1');
+            onAuth();
+        } else {
+            setError(true);
+            setInput('');
+        }
+    }
+
+    return (
+        <div className={styles.gatePage}>
+            <div className={styles.gateCard}>
+                <div className={styles.gateLogo}>🌿</div>
+                <h1 className={styles.gateTitle}>꽃뜰 어드민</h1>
+                <p className={styles.gateDesc}>관리자 전용 페이지입니다</p>
+                <form onSubmit={handleSubmit} className={styles.gateForm}>
+                    <input
+                        type="password"
+                        className={`${styles.gateInput} ${error ? styles.gateInputError : ''}`}
+                        placeholder="비밀번호를 입력하세요"
+                        value={input}
+                        onChange={e => { setInput(e.target.value); setError(false); }}
+                        autoFocus
+                    />
+                    {error && <p className={styles.gateError}>비밀번호가 올바르지 않습니다.</p>}
+                    <button type="submit" className={styles.gateBtn}>입장하기</button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ─── 폼 타입 ────────────────────────────────────────────────
 interface ScheduleItem {
     date: string;
     startTime: string;
@@ -23,19 +67,54 @@ const EMPTY_FORM = {
     note: '',
     isRecurring: false,
 };
-
 type FormData = typeof EMPTY_FORM;
 
+// ─── KST 요일 계산 ──────────────────────────────────────────
+function getKSTDay(dateStr: string): number | undefined {
+    if (!dateStr) return undefined;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).getDay();
+}
+
+// ─── 메인 어드민 페이지 ──────────────────────────────────────
 export default function AdminPage() {
+    const [authed, setAuthed] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    // 세션 확인
+    useEffect(() => {
+        setAuthed(sessionStorage.getItem(SESSION_KEY) === '1');
+        setLoading(false);
+    }, []);
+
+    if (loading) return null; // 깜빡임 방지
+    if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />;
+    return <AdminDashboard />;
+}
+
+// ─── 어드민 대시보드 (인증 후) ───────────────────────────────
+function AdminDashboard() {
     const [events, setEvents] = useState<ScheduleEvent[]>([]);
     const [form, setForm] = useState<FormData>(EMPTY_FORM);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all');
+    const [apiLoading, setApiLoading] = useState(false);
+    const [statusMsg, setStatusMsg] = useState('');
 
-    useEffect(() => {
-        setEvents(getEvents());
+    const loadEvents = useCallback(async () => {
+        setApiLoading(true);
+        const data = await fetchEvents();
+        setEvents(data);
+        setApiLoading(false);
     }, []);
+
+    useEffect(() => { loadEvents(); }, [loadEvents]);
+
+    function notify(msg: string) {
+        setStatusMsg(msg);
+        setTimeout(() => setStatusMsg(''), 3000);
+    }
 
     function openNew() {
         setForm(EMPTY_FORM);
@@ -44,7 +123,6 @@ export default function AdminPage() {
     }
 
     function openEdit(ev: ScheduleEvent) {
-        const { id } = ev;
         setForm({
             title: ev.title,
             category: ev.category,
@@ -52,7 +130,7 @@ export default function AdminPage() {
             note: ev.note || '',
             isRecurring: ev.isRecurring,
         });
-        setEditingId(id);
+        setEditingId(ev.id);
         setShowForm(true);
     }
 
@@ -71,31 +149,17 @@ export default function AdminPage() {
     }
 
     function addItem() {
-        setForm(prev => ({
-            ...prev,
-            items: [...prev.items, { date: '', startTime: '09:00', endTime: '10:00' }]
-        }));
+        setForm(prev => ({ ...prev, items: [...prev.items, { date: '', startTime: '09:00', endTime: '10:00' }] }));
     }
 
     function removeItem(index: number) {
         if (form.items.length <= 1) return;
-        setForm(prev => ({
-            ...prev,
-            items: prev.items.filter((_, i) => i !== index)
-        }));
+        setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== index) }));
     }
 
-    function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        let updated: ScheduleEvent[];
-
-        // KST 기준 요일 계산 함수 (0=Sun)
-        function getKSTDay(dateStr: string) {
-            if (!dateStr) return undefined;
-            const parts = dateStr.split('-').map(Number);
-            const date = new Date(parts[0], parts[1] - 1, parts[2]); // 로컬 타임존(KST환경)에서 생성
-            return date.getDay();
-        }
+        setApiLoading(true);
 
         const baseEvent = {
             title: form.title,
@@ -105,38 +169,55 @@ export default function AdminPage() {
         };
 
         if (editingId) {
-            // 수정 시에는 첫 번째 아이템 값으로 업데이트
             const item = form.items[0];
-            updated = events.map(ev => ev.id === editingId ? {
-                ...ev,
+            const updated: ScheduleEvent = {
+                id: editingId,
                 ...baseEvent,
                 date: item.date,
                 startTime: item.startTime,
                 endTime: item.endTime,
-                recurrenceDay: form.isRecurring ? getKSTDay(item.date) : undefined
-            } : ev);
+                recurrenceDay: form.isRecurring ? getKSTDay(item.date) : undefined,
+            };
+            const ok = await apiUpdateEvent(updated);
+            if (ok) {
+                setEvents(prev => prev.map(ev => ev.id === editingId ? updated : ev));
+                notify('✅ 일정이 수정되었습니다.');
+            } else {
+                notify('❌ 수정 실패. 다시 시도해 주세요.');
+            }
         } else {
-            // 새 등록 시에는 모든 아이템에 대해 개별 이벤트 생성
-            const newEvents = form.items.filter(item => item.date).map(item => ({
-                id: generateId(),
-                ...baseEvent,
-                date: item.date,
-                startTime: item.startTime,
-                endTime: item.endTime,
-                recurrenceDay: form.isRecurring ? getKSTDay(item.date) : undefined
+            const newItems = form.items.filter(item => item.date);
+            const results = await Promise.all(newItems.map(item => {
+                const ev: ScheduleEvent = {
+                    id: generateId(),
+                    ...baseEvent,
+                    date: item.date,
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    recurrenceDay: form.isRecurring ? getKSTDay(item.date) : undefined,
+                };
+                return apiAddEvent(ev).then(ok => ok ? ev : null);
             }));
-            updated = [...events, ...newEvents];
+            const added = results.filter(Boolean) as ScheduleEvent[];
+            setEvents(prev => [...prev, ...added]);
+            notify(`✅ ${added.length}개 일정이 등록되었습니다.`);
         }
 
-        saveEvents(updated);
-        setEvents(updated);
+        setApiLoading(false);
         setShowForm(false);
     }
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
         if (!confirm('이 일정을 삭제하시겠습니까?')) return;
-        const updated = deleteEvent(id);
-        setEvents(updated);
+        setApiLoading(true);
+        const ok = await apiDeleteEvent(id);
+        if (ok) {
+            setEvents(prev => prev.filter(ev => ev.id !== id));
+            notify('🗑️ 일정이 삭제되었습니다.');
+        } else {
+            notify('❌ 삭제 실패. 다시 시도해 주세요.');
+        }
+        setApiLoading(false);
     }
 
     const filtered = filterCategory === 'all' ? events : events.filter(e => e.category === filterCategory);
@@ -150,7 +231,11 @@ export default function AdminPage() {
                     <h1 className={styles.pageTitle}>꽃뜰 어드민</h1>
                     <p className={styles.pageDesc}>스케줄 등록 및 관리</p>
                 </div>
-                <button className={styles.addBtn} onClick={openNew}>+ 새 일정 추가</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {apiLoading && <span className={styles.loadingBadge}>처리 중…</span>}
+                    {statusMsg && <span className={styles.statusMsg}>{statusMsg}</span>}
+                    <button className={styles.addBtn} onClick={openNew} disabled={apiLoading}>+ 새 일정 추가</button>
+                </div>
             </div>
 
             {/* 필터 */}
@@ -158,33 +243,27 @@ export default function AdminPage() {
                 <button
                     className={`${styles.filterChip} ${filterCategory === 'all' ? styles.filterActive : ''}`}
                     onClick={() => setFilterCategory('all')}
-                >
-                    전체
-                </button>
+                >전체</button>
                 {(Object.keys(CATEGORY_LABELS) as Category[]).map(k => (
                     <button
                         key={k}
                         className={`${styles.filterChip} ${filterCategory === k ? styles.filterActive : ''}`}
                         style={filterCategory === k ? { backgroundColor: CATEGORY_COLORS[k], borderColor: CATEGORY_COLORS[k], color: 'white' } : {}}
                         onClick={() => setFilterCategory(k)}
-                    >
-                        {CATEGORY_LABELS[k]}
-                    </button>
+                    >{CATEGORY_LABELS[k]}</button>
                 ))}
             </div>
 
             {/* 일정 목록 */}
             <div className={styles.table}>
                 <div className={styles.tableHeader}>
-                    <span>날짜</span>
-                    <span>시간</span>
-                    <span>제목</span>
-                    <span>카테고리</span>
-                    <span>반복</span>
-                    <span>관리</span>
+                    <span>날짜</span><span>시간</span><span>제목</span>
+                    <span>카테고리</span><span>반복</span><span>관리</span>
                 </div>
                 {sorted.length === 0 && (
-                    <div className={styles.emptyRow}>등록된 일정이 없습니다.</div>
+                    <div className={styles.emptyRow}>
+                        {apiLoading ? '일정을 불러오는 중…' : '등록된 일정이 없습니다.'}
+                    </div>
                 )}
                 {sorted.map(ev => (
                     <div key={ev.id} className={styles.tableRow}>
@@ -195,14 +274,12 @@ export default function AdminPage() {
                             <span
                                 className={styles.catBadge}
                                 style={{ backgroundColor: `${CATEGORY_COLORS[ev.category]}20`, color: CATEGORY_COLORS[ev.category] }}
-                            >
-                                {CATEGORY_LABELS[ev.category]}
-                            </span>
+                            >{CATEGORY_LABELS[ev.category]}</span>
                         </span>
                         <span className={styles.recurCell}>{ev.isRecurring ? '🔁 반복' : '—'}</span>
                         <span className={styles.actions}>
-                            <button className={styles.editBtn} onClick={() => openEdit(ev)}>수정</button>
-                            <button className={styles.deleteBtn} onClick={() => handleDelete(ev.id)}>삭제</button>
+                            <button className={styles.editBtn} onClick={() => openEdit(ev)} disabled={apiLoading}>수정</button>
+                            <button className={styles.deleteBtn} onClick={() => handleDelete(ev.id)} disabled={apiLoading}>삭제</button>
                         </span>
                     </div>
                 ))}
@@ -231,6 +308,7 @@ export default function AdminPage() {
                                     </select>
                                 </div>
                             </div>
+
                             <div className={styles.slotsLabel}>
                                 <label>일정 설정 * (날짜 및 시간)</label>
                                 {!editingId && <button type="button" className={styles.addSlotBtn} onClick={addItem}>+ 일정 추가</button>}
@@ -240,29 +318,14 @@ export default function AdminPage() {
                                 {form.items.map((item, index) => (
                                     <div key={index} className={styles.itemRow}>
                                         <div className={styles.formField}>
-                                            <input
-                                                type="date"
-                                                value={item.date}
-                                                onChange={(e) => handleItemChange(index, 'date', e.target.value)}
-                                                required
-                                            />
+                                            <input type="date" value={item.date} onChange={e => handleItemChange(index, 'date', e.target.value)} required />
                                         </div>
                                         <div className={styles.formField}>
-                                            <input
-                                                type="time"
-                                                value={item.startTime}
-                                                onChange={(e) => handleItemChange(index, 'startTime', e.target.value)}
-                                                required
-                                            />
+                                            <input type="time" value={item.startTime} onChange={e => handleItemChange(index, 'startTime', e.target.value)} required />
                                         </div>
                                         <span className={styles.slotSep}>–</span>
                                         <div className={styles.formField}>
-                                            <input
-                                                type="time"
-                                                value={item.endTime}
-                                                onChange={(e) => handleItemChange(index, 'endTime', e.target.value)}
-                                                required
-                                            />
+                                            <input type="time" value={item.endTime} onChange={e => handleItemChange(index, 'endTime', e.target.value)} required />
                                         </div>
                                         {!editingId && form.items.length > 1 && (
                                             <button type="button" className={styles.removeSlotBtn} onClick={() => removeItem(index)}>×</button>
@@ -270,6 +333,7 @@ export default function AdminPage() {
                                     </div>
                                 ))}
                             </div>
+
                             <div className={styles.formField}>
                                 <label>메모</label>
                                 <textarea name="note" value={form.note} onChange={handleChange} placeholder="추가 내용 (선택)" />
@@ -279,8 +343,10 @@ export default function AdminPage() {
                                 <label htmlFor="isRecurring">매주 반복 일정으로 설정</label>
                             </div>
                             <div className={styles.formActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={() => setShowForm(false)}>취소</button>
-                                <button type="submit" className={styles.saveBtn}>{editingId ? '수정 완료' : '등록하기'}</button>
+                                <button type="button" className={styles.cancelBtn} onClick={() => setShowForm(false)} disabled={apiLoading}>취소</button>
+                                <button type="submit" className={styles.saveBtn} disabled={apiLoading}>
+                                    {apiLoading ? '처리 중…' : (editingId ? '수정 완료' : '등록하기')}
+                                </button>
                             </div>
                         </form>
                     </div>

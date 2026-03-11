@@ -191,7 +191,7 @@ export default function Scheduler() {
                                         {CATEGORY_LABELS[ev.category]}
                                     </span>
                                     <p className={styles.listTitle}>{ev.title}</p>
-                                    <p className={styles.listTime}>{ev.startTime} – {ev.endTime}{ev.isRecurring ? ' · 매주 반복' : ''}</p>
+                                    <p className={styles.listTime}>{ev.startTime} – {ev.endTime}</p>
                                 </div>
                             </div>
                         );

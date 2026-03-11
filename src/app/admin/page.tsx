@@ -9,6 +9,7 @@ import {
     ContactFormPayload,
 } from '@/lib/types';
 import { fetchEvents, apiAddEvent, apiUpdateEvent, apiDeleteEvent, generateId, fetchSubmissions } from '@/lib/api';
+import { parseIsRecurring } from '@/lib/utils';
 import styles from './admin.module.css';
 
 // ─── 비밀번호 상수 ───────────────────────────────────────────
@@ -74,7 +75,13 @@ type FormData = typeof EMPTY_FORM;
 function getKSTDay(dateStr: string): number | undefined {
     if (!dateStr) return undefined;
     const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d).getDay();
+    // UTC로 날짜를 생성한 뒤 KST 시간을 찾아 요일을 추출하거나, 
+    // 문자열 파싱 후 Intl.DateTimeFormat을 사용하는 방식이 안전함
+    const date = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+    const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'narrow' });
+    const dayName = formatter.format(date);
+    const dayMap: Record<string, number> = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+    return dayMap[dayName];
 }
 
 // ─── 메인 어드민 페이지 ──────────────────────────────────────
@@ -141,7 +148,7 @@ function AdminDashboard() {
             category: ev.category,
             items: [{ date: ev.date, startTime: ev.startTime, endTime: ev.endTime }],
             note: ev.note || '',
-            isRecurring: ev.isRecurring,
+            isRecurring: parseIsRecurring(ev.isRecurring),
         });
         setEditingId(ev.id);
         setShowForm(true);
@@ -305,7 +312,7 @@ function AdminDashboard() {
                                         style={{ backgroundColor: `${CATEGORY_COLORS[ev.category]}20`, color: CATEGORY_COLORS[ev.category] }}
                                     >{CATEGORY_LABELS[ev.category] || ev.category}</span>
                                 </span>
-                                <span className={styles.recurCell}>{ev.isRecurring ? '🔁 반복' : '—'}</span>
+                                <span className={styles.recurCell}>{parseIsRecurring(ev.isRecurring) ? '🔁 반복' : '—'}</span>
                                 <span className={styles.actions}>
                                     <button className={styles.editBtn} onClick={() => openEdit(ev)} disabled={apiLoading}>수정</button>
                                     <button className={styles.deleteBtn} onClick={() => handleDelete(ev.id)} disabled={apiLoading}>삭제</button>

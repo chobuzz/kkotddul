@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ScheduleEvent, CATEGORY_COLORS, CATEGORY_LABELS, INITIAL_EVENTS } from '@/lib/types';
 import { fetchEvents } from '@/lib/api';
+import { parseIsRecurring } from '@/lib/utils';
 import styles from './scheduler.module.css';
 
 // 오늘 날짜 문자열 반환 (YYYY-MM-DD, 한국 시간 기준)
@@ -31,6 +32,14 @@ function getWeekDates(baseDate: Date): Date[] {
         d.setDate(monday.getDate() + i);
         return d;
     });
+}
+
+// 특정 날짜의 KST 기준 요일(0~6) 반환
+function getKSTDayFromDate(d: Date): number {
+    const formatter = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', weekday: 'narrow' });
+    const dayName = formatter.format(d);
+    const dayMap: Record<string, number> = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+    return dayMap[dayName];
 }
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
@@ -63,18 +72,29 @@ export default function Scheduler() {
 
     function getEventsForDate(d: Date) {
         const ds = toDateStr(d);
-        const dayOfWeek = d.getDay() === 0 ? 6 : d.getDay() - 1; // 0=Mon ... 6=Sun (DAY_LABELS 순서에 맞춰 조정)
+        const kstDay = getKSTDayFromDate(d);
 
         return events.filter(e => {
+            const isRecur = parseIsRecurring(e.isRecurring);
+
             // 1. 정확히 날짜가 일치하는 경우
             if (e.date === ds) return true;
 
             // 2. 반복 일정인 경우
-            if (e.isRecurring) {
+            if (isRecur) {
                 // 시작일(e.date) 이후이면서 요일이 일치하는 경우
-                // Types.ts에서 0=Sun으로 정의했으므로 d.getDay()와 바로 비교
-                const eventRecurDay = e.recurrenceDay ?? new Date(e.date).getDay();
-                return e.date <= ds && d.getDay() === eventRecurDay;
+                let eventRecurDay = e.recurrenceDay;
+                
+                // recurrenceDay가 없는 경우 시작 날짜 문자열로부터 KST 요일 추출
+                if (!eventRecurDay && eventRecurDay !== 0) {
+                    const [y, m, day] = e.date.split('-').map(Number);
+                    const startDate = new Date(Date.UTC(y, m - 1, day, 0, 0, 0));
+                    eventRecurDay = getKSTDayFromDate(startDate);
+                } else {
+                    eventRecurDay = Number(eventRecurDay);
+                }
+                
+                return e.date <= ds && kstDay === eventRecurDay;
             }
 
             return false;
@@ -84,7 +104,7 @@ export default function Scheduler() {
     // 이번 주 모든 이벤트 (리스트 뷰용)
     const weekEvents = weekDates
         .flatMap(d => getEventsForDate(d).map(e => ({ ...e, _date: d })))
-        .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+        .sort((a, b) => toDateStr(a._date).localeCompare(toDateStr(b._date)) || a.startTime.localeCompare(b.startTime));
 
     const currentMonth = `${baseDate.getFullYear()}년 ${baseDate.getMonth() + 1}월`;
 
@@ -140,7 +160,7 @@ export default function Scheduler() {
                                             className={styles.eventChip}
                                             style={{ borderLeft: `3px solid ${CATEGORY_COLORS[ev.category]}`, background: `${CATEGORY_COLORS[ev.category]}12` }}
                                         >
-                                            <span className={styles.chipTime}>{ev.startTime}</span>
+                                            <span className={styles.chipTime}>{ev.startTime} – {ev.endTime}</span>
                                             <p className={styles.chipTitle}>{ev.title}</p>
                                         </div>
                                     ))}
@@ -157,11 +177,12 @@ export default function Scheduler() {
                 <div className={styles.listView}>
                     {weekEvents.length === 0 && <p className={styles.emptyMsg}>이번 주 등록된 일정이 없습니다.</p>}
                     {weekEvents.map(ev => {
-                        const isToday = ev.date === today;
+                        const evDateStr = toDateStr(ev._date);
+                        const isToday = evDateStr === today;
                         return (
-                            <div key={ev.id} className={`${styles.listItem} ${isToday ? styles.listItemToday : ''}`}>
+                            <div key={`${ev.id}-${evDateStr}`} className={`${styles.listItem} ${isToday ? styles.listItemToday : ''}`}>
                                 <div className={styles.listLeft}>
-                                    <span className={styles.listDayLabel}>{isToday ? '오늘' : DAY_LABELS[ev._date.getDay() === 0 ? 6 : ev._date.getDay() - 1]}</span>
+                                    <span className={styles.listDayLabel}>{isToday ? '오늘' : DAY_LABELS[getKSTDayFromDate(ev._date) === 0 ? 6 : getKSTDayFromDate(ev._date) - 1]}</span>
                                     <span className={styles.listDayNum}>{ev._date.getDate()}</span>
                                 </div>
                                 <div className={styles.listBar} style={{ backgroundColor: CATEGORY_COLORS[ev.category] }} />
